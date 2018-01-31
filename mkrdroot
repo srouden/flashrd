@@ -148,12 +148,17 @@ c 2 cp $distloc/dev/MAKEDEV $tmpmntdir/dev
 
 ###
 #
-# Make devices (no longer need extra bpfXX as of 6.0)
+# Devices with an extra touch of bpf (normal distribution has bpf0-bpf9, so create starting at bpf10)
 
 wd=`pwd`
 cd $tmpmntdir/dev
 c 2 ./MAKEDEV all
 
+i=10
+while [ $i -le 511 ]; do
+ c 2 ./MAKEDEV bpf$i
+ let i=i+1
+done
 cd $wd
 
 ###

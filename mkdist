@@ -242,7 +242,7 @@ tmpmntdir=$(c 0 mktemp -t -d mkdist.XXXXXX)
 # Determine sizes for partitions
 
 set -A part a d e f g h i j k l m n o p
-disktotal=0
+disktotal=1048576
 x=0
 
 bytessec=512
@@ -282,12 +282,16 @@ for i in $vnddirs; do
 
 done
 
+#disktotal=$((disktotal+1048576))
+
 ###
 #
 # Setup openbsd.vnd with a little bit of zeros
 
+openbsd_vnd=$TMPDIR/openbsd.vnd
+
 echo -n "Size openbsd.vnd `sectors2mbytes $disktotal`MB "
-c 0 "dd if=/dev/zero of=${tmpmnt}/openbsd.vnd bs=512 count=0 seek=${disktotal} > $TMPDIR/last.output 2>&1"
+c 0 "dd if=/dev/zero of=$openbsd_vnd bs=512 count=0 seek=${disktotal} > $TMPDIR/last.output 2>&1"
 echo
 
 sectorstrack=64
@@ -323,7 +327,7 @@ c 0 mv /etc/disktab /etc/disktab.${tabname}
 c 0 cp $tmplabel /etc/disktab
 c 0 cp $tmplabel $TMPDIR/vnd.disktab
 
-c 0 vnconfig -t vnd-${tabname} $device $tmpmnt/openbsd.vnd
+c 0 vnconfig -t vnd-${tabname} $device $openbsd_vnd
 
 c 1 "disklabel -w $device vnd-${tabname} > $TMPDIR/last.output 2>&1"
 
@@ -338,7 +342,10 @@ vlc=0
 
 resolv=$TMPDIR/resolv.conf
 
+mkdir $TMPDIR/tars
+
 for vl in $vnddirs; do
+
  echo -n Finalizing /${vl}
 
  echo -n " newfs"
@@ -347,7 +354,15 @@ for vl in $vnddirs; do
  c 1 mount /dev/${device}${part[$vlc]} $tmpmntdir
 
  echo -n " copy"
- c 2 tar cf - -C $distloc/${vl} . | c 2 tar xpf - -C $tmpmntdir
+  echo "     $vl: ${device}${part[$vlc]} $distloc/${vl} $tmpmntdir"
+  df -h $tmpmntdir
+  du -sk $tmpmntdir
+  du -sk $distloc/$vl
+ #c 2 tar cf - -C $distloc/${vl} . | c 2 tar xpf - -C $tmpmntdir
+ tarfile=$TMPDIR/tars/${vl}.tar
+ c 2 tar cf $tarfile -C $distloc/${vl} . 
+ ls -l $tarfile
+ c 2 tar xpf $tarfile -C $tmpmntdir
 
  if [ ${vl} == "etc" ]; then
 
@@ -366,6 +381,10 @@ for vl in $vnddirs; do
 done
 
 c 0 vnconfig -u $device
+
+cp -p $openbsd_vnd $tmpmnt/openbsd.vnd
+
+echo "openbsd.vnd created"
 
 ###
 #

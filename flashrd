@@ -59,11 +59,16 @@ Write direct to disk:
 Write to disk image:
     -l n	Number of total sectors (default $totalsize or `sectors2mbytes $totalsize`MB)
 
+Location of final image:
+    -i "dir"    Directory of final image
+
 Other options:
     -e "dir"    directory where elfrdsetroot.c is located
 
 EOF
 }
+
+echo $*
 
 while :
 do
@@ -73,6 +78,7 @@ do
   -l) t2 "$2"; totalsize="$2"; shift 2;;
   -b) t2 "$2"; bytessec="$2"; shift 2;;
   -e) t2 "$2"; elfrdsetrootdir="$2"; shift 2;;
+  -i) t2 "$2"; destdir="$2"; shift 2;;
 
   --) shift; break;;
   -*) usage; exit 1;;
@@ -108,6 +114,15 @@ else
   exit 1
  fi
 fi
+
+if [ x"${destdir}" != "x" -a ! -d "$destdir" ]; then
+  echo % $destdir is not a directory
+  exit 1
+elif [ "x${destdir}" != "x" ]; then
+  dest=${destdir}/${dest}
+fi
+
+echo "Building image in $dest"
 
 if [[ -n $elfrdsetrootdir && ! -d $elfrdsetrootdir ]]; then
  echo % elfrdsetrootdir $elfrdsetrootdir not found
